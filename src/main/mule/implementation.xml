@@ -35,7 +35,7 @@ output application/json
 payload]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
-		<logger level="INFO" doc:name="Logger" doc:id="6e8084a5-943f-46da-bccb-3c2599cfbe34" />
+		<logger level="INFO" doc:name="Logger" doc:id="6e8084a5-943f-46da-bccb-3c2599cfbe34" message='"message invoked"'/>
 	</flow>
 	<flow name="getAllAirlineFlights" doc:id="1da6a2fe-eaa4-4313-a916-ade7c8bac249" >
 		<scatter-gather doc:name="Scatter-Gather" doc:id="40d0af1d-2f8e-4fa0-a6ed-a522f8f3e19c" >
