@@ -9,10 +9,11 @@ http://www.mulesoft.org/schema/mule/wsc http://www.mulesoft.org/schema/mule/wsc/
 http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
 http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd">
 	<flow name="getFlights" doc:id="85a7e2e6-6400-4d42-859b-fc6672cae83a" >
-		<http:listener doc:name="GET /flights" doc:id="66d3d6ab-1b61-4467-a0f5-b7531a9e0c10" config-ref="HTTP_Listener_config" path="/flights" allowedMethods="GET" />
 		<set-variable value="#[message.attributes.queryParams.airline]" doc:name="Set Variable" doc:id="3183cd12-5e91-447a-a748-70002f5c4fe2" variableName="airline"/>
 		<flow-ref doc:name="setcode" doc:id="74e9e8c5-b528-4775-88aa-49c5eafcb17a" name="setcode"/>
-		<validation:is-true doc:name="Is valid destination" doc:id="b08af339-9b20-4764-b265-f837e765542a" expression="#[['SFO','LAX','CLE','PDX','PDF'] contains vars.code]" message="#['Invalid destination' ++ ' ' ++ (vars.code default ' ')]"/>
+		<validation:is-true doc:name="Is valid destination" doc:id="b08af339-9b20-4764-b265-f837e765542a" expression="#[['SFO','LAX','CLE','PDX','PDF'] contains vars.code]" message="#['Invalid destination' ++ ' ' ++ (vars.code default ' ')]">
+			<error-mapping sourceType="VALIDATION:INVALID_BOOLEAN" targetType="APP:INVALID_DESTINATION" />
+		</validation:is-true>
 		<choice doc:name="Choice" doc:id="c4892415-2d54-4509-8d72-8e43b651c49d" >
 			<when expression='#[vars.airline == "american"]'>
 				<flow-ref doc:name="getAmericanFlights" doc:id="52065d2b-5a27-4412-b978-5149228b918b" name="GETAmericanflight"/>
@@ -40,13 +41,57 @@ payload]]></ee:set-payload>
 	<flow name="getAllAirlineFlights" doc:id="1da6a2fe-eaa4-4313-a916-ade7c8bac249" >
 		<scatter-gather doc:name="Scatter-Gather" doc:id="40d0af1d-2f8e-4fa0-a6ed-a522f8f3e19c" >
 			<route >
-				<flow-ref doc:name="getAmericanFlights" doc:id="8a2cf8fd-a286-420e-a7b9-b9066236ebab" name="GETAmericanflight"/>
+				<try doc:name="Try" doc:id="1ac9a3c1-7749-427d-9eb2-31ed022cd2c5" >
+					<flow-ref doc:name="getAmericanFlights" doc:id="8a2cf8fd-a286-420e-a7b9-b9066236ebab" name="GETAmericanflight" />
+					<error-handler >
+						<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="809872e3-11e6-42bc-b189-3f6a81ccc67f" type="ANY">
+							<ee:transform doc:name="[]" doc:id="94693178-42dc-4825-ba22-012ccc2af33e" >
+								<ee:message >
+									<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+
+	[]
+]]></ee:set-payload>
+								</ee:message>
+							</ee:transform>
+						</on-error-continue>
+					</error-handler>
+				</try>
 			</route>
 			<route >
-				<flow-ref doc:name="getUnitedFlights" doc:id="14902a74-2874-445d-805a-a2249eceaf1c" name="getunitedflight"/>
+				<try doc:name="Try" doc:id="7bb276dd-f775-4b4d-b3fd-1818c92e020c" >
+					<flow-ref doc:name="getUnitedFlights" doc:id="14902a74-2874-445d-805a-a2249eceaf1c" name="getunitedflight" />
+					<error-handler >
+						<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="0ae643d8-6624-4ce0-a628-246b5859e626" type="ANY">
+							<ee:transform doc:name="[]" doc:id="ac766da2-2a70-471f-89a9-d75458ede0c8" >
+								<ee:message >
+									<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+[]]]></ee:set-payload>
+								</ee:message>
+							</ee:transform>
+						</on-error-continue>
+					</error-handler>
+				</try>
 			</route>
 			<route >
-				<flow-ref doc:name="getDeltaFlights" doc:id="ca00558b-8f23-4625-a92b-f6a4b428f054" name="Getdeltaflight"/>
+				<try doc:name="Try" doc:id="34e15e18-ea0e-48f4-b7a5-1578284ec734" >
+					<flow-ref doc:name="getDeltaFlights" doc:id="ca00558b-8f23-4625-a92b-f6a4b428f054" name="Getdeltaflight" />
+					<error-handler >
+						<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="f6a5e554-6c16-41a1-a4fb-29e39b7a61ec" type="ANY">
+							<ee:transform doc:name="[]" doc:id="eea20043-9f54-4470-90ba-e0fab26d4335" >
+								<ee:message >
+									<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+[]]]></ee:set-payload>
+								</ee:message>
+							</ee:transform>
+						</on-error-continue>
+					</error-handler>
+				</try>
 			</route>
 		</scatter-gather>
 		<ee:transform doc:name="flatten to [Flight]" doc:id="1a502f2d-2e97-4e47-b2e2-e05a8888abc8" >
@@ -84,6 +129,21 @@ payload map ( payload01 , indexOfPayload01 ) -> {
 			</ee:message>
 		</ee:transform>
 		<logger level="INFO" doc:name="Logger" doc:id="4e62b2c2-9db4-4b96-9819-66ecba6b4119" />
+		<error-handler >
+			<on-error-continue enableNotifications="true" logException="true" doc:name="on-error-continue" doc:id="0cbfc068-8f12-4faa-811f-887b947f0af6" type="AMERICAN-FLIGHTS-API:BAD_REQUEST">
+				<ee:transform doc:name="Noflight" doc:id="4cfbd511-65d6-41a2-b910-82961d6f9707">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"message": "Noflight to " ++ vars.code as String
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<set-variable value="200" doc:name="httpStatus" doc:id="7c310f79-c2cf-4b51-a453-462acd61a45a" variableName="httpStatus" />
+			</on-error-continue>
+		</error-handler>
 	</flow>
 	<flow name="getunitedflight" doc:id="463ce0f1-3c70-407d-89ce-640ac520587f" >
 		<http:request method="GET" doc:name="GETFLIGHT" doc:id="8dda119c-0d53-47f8-903b-dbbecb739df0" config-ref="HTTP_Request_config_training" path="/united/flights/{dest}">
